@@ -1,2 +1,2 @@
 # DWR-On-Call
-Alert system for on-call engineer to DWR alert thresholds &amp; automated update featuring key parameters.
+Alert system for on-call engineer and resource for basin conditions and forecasting.
