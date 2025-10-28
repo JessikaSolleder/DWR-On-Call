@@ -25,7 +25,7 @@ Alert system for on-call engineer and resource for basin conditions and forecast
 .
 .
 .
-2) Step-by-step (how to reach it)
+
 A. Define the MVP
 
 Inputs: your specific URLs (JSON, CSV, XML, HTML pages—whatever the agencies publish)
