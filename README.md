@@ -26,111 +26,11 @@ Alert system for on-call engineer and resource for basin conditions and forecast
 .
 .
 
-A. Define the MVP
+**Fire Data:** https://firms.modaps.eosdis.nasa.gov/map/#d:24hrs;@0.0,0.0,3.0z
+**SNOTEL Data:** https://nwcc-apps.sc.egov.usda.gov/imap/#version=170&elements=&networks=!&states=!&counties=!&hucs=&minElevation=&maxElevation=&elementSelectType=any&activeOnly=true&activeForecastPointsOnly=true&hucLabels=false&hucIdLabels=false&hucParameterLabels=true&stationLabels=&overlays=&hucOverlays=&basinOpacity=75&basinNoDataOpacity=25&basemapOpacity=100&maskOpacity=0&mode=data&openSections=dataElement,parameter,date,basin,options,elements,location,networks&controlsOpen=true&popup=&popupMulti=&popupBasin=&base=esriNgwm&displayType=station&basinType=6&dataElement=WTEQ&depth=-8&parameter=PCTMED&frequency=DAILY&duration=I&customDuration=&dayPart=E&monthPart=E&forecastPubDay=1&forecastExceedance=50&useMixedPast=true&seqColor=1&divColor=7&scaleType=D&scaleMin=&scaleMax=&referencePeriodType=POR&referenceBegin=1991&referenceEnd=2020&minimumYears=20&hucAssociations=true&relativeDate=-1&lat=46.312&lon=-116.315&zoom=8.0
+**Weather Data 1:** https://www.wunderground.com/forecast/us/id/lewiston
+**Weather Data 2:** https://www.nwrfc.noaa.gov/rfc/
+**Weather Data 3:** https://www.nwrfc.noaa.gov/weather/10_day.cgi
+DWR Forebay Elevation: https://www.nwd-wc.usace.army.mil/dd/common/dataquery/www/
+DWR Qout (1 hour average): https://www.nwd-wc.usace.army.mil/dd/common/dataquery/www/
 
-Inputs: your specific URLs (JSON, CSV, XML, HTML pages—whatever the agencies publish)
-
-Core metrics: e.g., flow (cfs), stage (ft), SWE, precip, reservoir storage, forecast traces
-
-Basin config: YAML/JSON listing stations, parameters, thresholds, units, tz
-
-Alerts: simple thresholds first (e.g., stage >= 12.0 ft), then derivatives (rate of rise), then forecast exceedance (prob. > 30% to exceed X)
-
-B. Architecture
-
-FastAPI service with routes:
-
-GET /dashboard (Streamlit or a small front-end)
-
-GET /api/latest?basin=…
-
-GET /api/alerts (current & recent)
-
-POST /api/subscribe (add phone/push endpoint)
-
-Ingestion jobs (APScheduler):
-
-Every 5–15 min, pull the configured links, normalize units/timezones, cache to DB
-
-Rules engine:
-
-Evaluate new data against per-basin thresholds
-
-Debounce & rate-limit alerts; store sent-alert hashes to avoid spam
-
-Notifications:
-
-SMS (Twilio) or push (Pushover/Telegram/Web Push)
-
-Storage:
-
-SQLite for MVP (sqlmodel/SQLAlchemy) → easy to deploy anywhere
-
-C. UI (two good paths)
-
-Fastest: Streamlit app embedded or launched alongside FastAPI
-
-Pros: hours to first dashboard; built-in charts; great for ops
-
-Cons: less control, but fine for a regulator’s cockpit
-
-Polished: small React UI (Vite) + Recharts/Plotly + responsive layout
-
-Pros: best mobile UX + PWA installable; Cons: a bit more setup
-
-D. Packaging/Deploy
-
-Local: uv/pipx + .env → run on laptop (great for on-call)
-
-Server: Docker Compose on a VPS (fly.io, Render, Lightsail) to keep polling 24/7
-
-PWA: add manifest + service worker for “install to phone” feel
-
-E. Ops concerns
-
-Timezones: use zoneinfo("America/Boise")
-
-Retries/circuit-breakers for flaky upstreams
-
-Logging & audit trail for decisions (helpful if you explain release choices)
-
-Health checks: /healthz route; alert if data goes stale
-
-3) Alternatives & trade-offs
-
-Kivy/BeeWare (pure Python desktop/mobile): possible, but mobile packaging and push alerts are harder. Web-first + PWA is faster to operate.
-
-No scheduler (cron only): simpler but you lose in-process state and debounce; APScheduler keeps it all in one place.
-
-Email vs SMS vs Push: SMS is universal (Twilio cost). Push (Pushover/Telegram) is cheap/fast. Web Push needs HTTPS + browser permissions.
-
-4) Practical summary / action plan
-Milestone 1 — “Hello Basin” MVP (1–2 sessions)
-
-Create repo; add FastAPI, APScheduler, pandas, pydantic, sqlmodel, httpx.
-
-Add basins.yaml with stations/params/thresholds.
-
-Write one ingestor for a JSON endpoint (swap in your first link).
-
-Store latest observations in SQLite.
-
-Evaluate a simple threshold; send a test SMS via Twilio (or Pushover).
-
-Build a Streamlit view to see current values + sparkline.
-
-Milestone 2 — Forecasts & rules
-
-Add a forecast ingestor (RFC/NBM/etc. from your link).
-
-Add exceedance rules (e.g., any ensemble member above flood stage).
-
-Debounce & shift-based alerts (only alert on state change).
-
-Milestone 3 — PWA polish / deploy
-
-Replace Streamlit (optional) with a small React UI and PWA manifest.
-
-Dockerize; deploy to a small VPS for 24/7 polling.
-
-Add /admin page to edit thresholds, contacts, quiet hours.
